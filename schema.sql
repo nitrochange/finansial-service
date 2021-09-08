@@ -1,6 +1,7 @@
+--File was used in first versions of the App. Now tables are created by ORM.
 CREATE TABLE Users
 (
-    id SERIAL,
+    id TEXT NOT NULL,
     firstName TEXT NOT NULL,
     secondName TEXT NOT NULL,
     email TEXT NOT NULL,

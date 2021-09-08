@@ -2,20 +2,53 @@ package dao
 
 import (
 	"finansial-service/main/models"
+	"finansial-service/main/models/requiests"
+	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v9/orm"
+	_ "github.com/lib/pq"
+	"log"
+	"os"
 )
 
-// Albums slice to seed record album data.
-var Albums = []models.Album{
-	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
-	{ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
-	{ID: "3", Title: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
-}
+//DB
+var DBConnect *pg.DB
 
-var Users = []models.User{
-	{ID: "1", FirstName: "Nikita", SecondName: "Baranov", Email: "baranovnikita@mail.ru", PhoneNumber: "7999999999", Balance: 0, Address: "Moscow"},
-	{ID: "2", FirstName: "Sasha", SecondName: "Lapshin", Email: "sasha@mail.ru", PhoneNumber: "71111111111", Balance: 0, Address: "Oslo"},
-}
+// Connecting to db
+func Connect() *pg.DB {
+	opts := &pg.Options{
+		User:     "admin",
+		Password: "password",
+		Addr:     "localhost:5432",
+		Database: "postgres",
+	}
 
-var Transactions = []models.Transaction{
-	{SenderUserID: "1", ReceiverUserID: "2", Amount: 34},
+	var db *pg.DB = pg.Connect(opts)
+	if db == nil {
+		log.Printf("Failed to connect")
+		os.Exit(100)
+	}
+	log.Printf("Connected to db")
+
+	//USERS TABLE CREATION
+	opts1 := &orm.CreateTableOptions{
+		IfNotExists: true,
+	}
+	createError := db.CreateTable(&models.User{}, opts1)
+	if createError != nil {
+		log.Printf("Error while creating USERS table, Reason: %v\n", createError)
+	}
+	log.Printf("Users table created")
+
+	//TRANSACTIONS TABLE CREATION
+	opts2 := &orm.CreateTableOptions{
+		IfNotExists: true,
+	}
+	createError = db.CreateTable(&requiests.Transaction{}, opts2)
+	if createError != nil {
+		log.Printf("Error while creating TRANSACTIONS table, Reason: %v\n", createError)
+	}
+	log.Printf("TRANSACTIONS table created")
+
+	DBConnect = db
+	return db
 }

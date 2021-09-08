@@ -3,8 +3,10 @@ package endpoints
 import (
 	"encoding/json"
 	"finansial-service/main/dao"
+	"finansial-service/main/models"
 	"finansial-service/main/models/requiests"
 	"github.com/gin-gonic/gin"
+	"github.com/go-pg/pg/v9"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -14,40 +16,56 @@ import (
 func MakeAddition(c *gin.Context) {
 	jsonData, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, "Incorrect JSON body. Cant deserialize it.")
+		c.JSON(http.StatusInternalServerError, "Incorrect JSON body. Cant deserialize it.")
 		return
 	}
 
 	var request requiests.WriteOFFJSON
 	json.Unmarshal(jsonData, &request)
 
-	var id = request.ID
-	amount, err := strconv.Atoi(request.Amount)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, "Cannot convert amount field to int value.")
+	var id string
+
+	if Transaction {
+		id = TransactionUserReceiverId
+	} else {
+		id = request.ID
 	}
 
-	var utils = dao.Utils{}
-	var user = utils.GetUser(id)
-	balance, err := strconv.Atoi(user.Balance)
+	amount, err := strconv.Atoi(request.Amount)
+
+	if Transaction {
+		amount, err = strconv.Atoi(Amount)
+	}
+
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, "Can not parse balance from database")
-		log.Fatal("Can not parse balance from database")
+		c.JSON(http.StatusInternalServerError, "Cannot convert amount field to int value.")
+	}
+
+	var user = &models.User{}
+	error := dao.DBConnect.Model(user).Where("? = ?", pg.Ident("id"), id).Select()
+	if error != nil {
+		log.Printf("Cant find user in DB")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Cant find user in DB",
+		})
 		return
 	}
-	user.Balance = strconv.Itoa(balance + amount)
-	//utils.UpdateUser()
+	var userBalance, _ = strconv.Atoi(user.Balance)
+	user.Balance = strconv.Itoa(userBalance + amount)
 
-	c.IndentedJSON(http.StatusOK, user)
+	_, err = dao.DBConnect.Model(user).Set("balance = ?balance").Where("id = ?id").Update()
 
-	//for i:= 0; i < len(dao.Users); i++ {
-	//	temp := &dao.Users[i]
-	//	if temp.ID == id {
-	//			temp.Balance += amount
-	//			c.IndentedJSON(http.StatusOK, temp)
-	//			return
-	//	}
-	//}
+	if error != nil {
+		log.Printf("Can not insert new user balance into database")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Can not insert new user balance into database",
+		})
+		return
+	}
 
-	c.IndentedJSON(http.StatusNotFound, "Requested user was not found")
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Addition completed",
+	})
+	return
+
 }
