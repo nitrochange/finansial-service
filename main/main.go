@@ -15,7 +15,7 @@ func main() {
 	router.GET("/write-down", endpoints.GetWriteDown)
 	router.GET("/addition", endpoints.MakeAddition)
 	router.POST("/createUser", endpoints.CreateUser)
-	router.GET("/", healthCheck)
+	router.GET("/", HealthCheck)
 	router.GET("/getBalance", endpoints.GetBalance)
 	router.POST("/transact", endpoints.MakeTransaction)
 	router.NoRoute(onError)
@@ -23,7 +23,7 @@ func main() {
 
 }
 
-func healthCheck(c *gin.Context) {
+func HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "App is running successfully",
 	})
