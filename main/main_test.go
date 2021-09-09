@@ -84,15 +84,20 @@ type Response struct {
 	UserId string `json:"userid"`
 }
 
-//Simple addition test
-func TestAddition(t *testing.T) {
-
-	//Create new user and get his userId
+func getNewUserIdAndRouter() (string, *gin.Engine) {
 	newUserId, router := GetIdOfCreatedUser()
 	log.Printf(newUserId)
 	var response1 Response
 	json.Unmarshal([]byte(newUserId), &response1)
 	newUserId = response1.UserId
+	return newUserId, router
+}
+
+//Simple addition test
+func TestSimpleAddition(t *testing.T) {
+
+	//Create new user and get his userId
+	newUserId, router := getNewUserIdAndRouter()
 
 	//Make an addition for created user
 	router.GET("/addition", endpoints.MakeAddition)
@@ -105,4 +110,40 @@ func TestAddition(t *testing.T) {
 		return statusOk
 	})
 
+}
+
+//Simple getBalance test
+func TestCommonGetBalance(t *testing.T) {
+	//Create new user and get his userId
+	newUserId, router := getNewUserIdAndRouter()
+
+	router.GET("/getBalance", endpoints.GetBalance)
+	var body = "{\"id\":\"" + newUserId + "\"}"
+	response, _ := http.NewRequest("GET", "/getBalance", strings.NewReader(body))
+	assertHTTPresponse(t, router, response, func(w *httptest.ResponseRecorder) bool {
+		statusOk := w.Code == http.StatusOK
+		log.Printf(w.Body.String())
+		return statusOk
+	})
+}
+
+func TestSimpleMakeWriteDown(t *testing.T) {
+	//Create new user and get his userId
+	newUserId, router := getNewUserIdAndRouter()
+
+	router.GET("/addition", endpoints.MakeAddition)
+	router.GET("/write-down", endpoints.GetWriteDown)
+
+	var bodyForWriteDown = "{\"id\":\"" + newUserId + "\", \"amount\":\"200\"}"
+	var bodyForAddition = "{\"id\":\"" + newUserId + "\", \"amount\":\"50\"}"
+	//firstly we have to add some money for recently created user
+	resp, _ := http.NewRequest("GET", "/addition", strings.NewReader(bodyForAddition))
+	log.Printf(resp.Proto)
+
+	response, _ := http.NewRequest("GET", "/write-down", strings.NewReader(bodyForWriteDown))
+	assertHTTPresponse(t, router, response, func(w *httptest.ResponseRecorder) bool {
+		statusOk := w.Code != http.StatusOK
+		log.Printf((w.Body.String()))
+		return statusOk
+	})
 }

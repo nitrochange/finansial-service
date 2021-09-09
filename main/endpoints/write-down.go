@@ -63,7 +63,7 @@ func GetWriteDown(c *gin.Context) {
 	if userBalance-amount >= 0 {
 		user.Balance = strconv.Itoa(userBalance - amount)
 	} else {
-		log.Printf("Can not make a transaction with userId: $1. Balance is less than amount", user.ID)
+		log.Printf("Can not make a transaction. Balance is less than amount.")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Can not make a transaction. Insufficient funds.",
 		})
